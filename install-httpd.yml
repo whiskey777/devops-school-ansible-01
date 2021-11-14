@@ -1,3 +1,4 @@
+---
 - hosts: nodes
   vars:
     project_root: /var/www/html
@@ -5,37 +6,46 @@
      - { port: 80/tcp, state: enabled }
      - { port: 443/tcp, state: enabled }
   tasks:  
-   - name: Install Apache Webserver
-     yum: 
-      pkg: httpd 
-      state: latest
-   - name: Create the index file at project root
-     copy: 
-      dest: "{{ project_root }}/index.html"
-      owner: apache 
-      group: apache 
-      mode: 0644
-      content: |
-       <h1>Welcome to my web server<h1> 
-   - name: Enable Apache on system reboot
-     service: name=httpd enabled=yes
-     notify: 
-      - Restart apache
-   - name: Manage firewall ports
-     firewalld:
-      zone: public
-      port: "{{ item.port }}"
-      permanent: true
-      state: "{{ item.state }}"
-     loop: "{{ port_list }}"
-     notify:
-      - Restart firewalld
+    - name: Install Apache Webserver
+      yum: 
+        pkg: httpd 
+        state: latest
+      register: httpd_install
+    - name: Create the index file at project root
+      copy: 
+        dest: "{{ project_root }}/index.html"
+        owner: apache 
+        group: apache 
+        mode: 0644
+        content: |
+         <h1>Welcome to my web server<h1> 
+    - name: Enable Apache on system reboot
+      service: 
+        name: httpd 
+        enabled: yes
+      register: httpd_enabled
+      notify: 
+        - Restart apache
+    - name: Make sure httpd is started.
+      service: 
+        name: httpd
+        state: started
+      when: httpd_install.changed == false and httpd_enabled.changed == false
+    - name: Manage firewall ports
+      firewalld:
+        zone: public
+        port: "{{ item.port }}"
+        permanent: true
+        state: "{{ item.state }}"
+      loop: "{{ port_list }}"
+      notify:
+        - Restart firewalld
   handlers:
-   - name: Restart apache
-     service: 
-      name: httpd 
-      state: restarted
-   - name: Restart firewalld
-     service:
-      name: firewalld
-      state: restarted
+    - name: Restart apache
+      service: 
+        name: httpd 
+        state: restarted
+    - name: Restart firewalld
+      service:
+        name: firewalld
+        state: restarted
