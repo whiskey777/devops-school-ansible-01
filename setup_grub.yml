@@ -1,20 +1,21 @@
+---
 - hosts: nodes
   vars:
-   options:
-    - { name: net.ifnames, value: 0 }
-    - { name: biosdevname, value: 0 }
+    options:
+      - { name: net.ifnames, value: 0 }
+      - { name: biosdevname, value: 0 }
   tasks:
-   - name: Setup GRUB
-     lineinfile:
-      state: present
-      dest: /etc/default/grub
-      backrefs: yes
-      regexp: '^(GRUB_CMDLINE_LINUX=(?:(?![" ]{{ item.name | regex_escape }}=).)*)(?:[" ]{{ item.name | regex_escape }}=\S+)?(.*")$'
-      line: '\1 {{ item.name }}={{ item.value }}\2'
-     loop: "{{ options }}"
-     notify:
-      - Apply GRUB changes
+    - name: Setup GRUB
+      lineinfile:
+        state: present
+        dest: /etc/default/grub
+        backrefs: yes
+        regexp: '^(GRUB_CMDLINE_LINUX=(?:(?![" ]{{ item.name | regex_escape }}=).)*)(?:[" ]{{ item.name | regex_escape }}=\S+)?(.*")$'
+        line: '\1 {{ item.name }}={{ item.value }}\2'
+      loop: "{{ options }}"
+      notify:
+        - Apply GRUB changes
   handlers:
-   - name: Apply GRUB changes 
-     shell:
-      cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+    - name: Apply GRUB changes 
+      shell:
+        cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
